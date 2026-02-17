@@ -5,6 +5,8 @@ import { prettyJSON } from 'hono/pretty-json';
 import { cors } from 'hono/cors';
 import projectRoute from './routes/project.route.js';
 import workspaceMemberRoute from './routes/workspaceMember.route.js';
+import taskRoute from './routes/task.route.js';
+import taskStatusRoute from './routes/taskStatus.route.js';
 
 
 const app = new Hono();
@@ -19,6 +21,8 @@ app.get('/', (c) => {
 app.route('/user', userRoute);
 app.route('/project', projectRoute);
 app.route('/workspace-member', workspaceMemberRoute);
+app.route('task', taskRoute),
+app.route('task-status', taskStatusRoute),
 
 
 serve({
