@@ -1,4 +1,7 @@
+import { randomUUID } from "crypto";
 import { pool } from "../config/db.js";
+import { join } from "path";
+import { mkdir, writeFile } from "fs/promises";
 
 
 
@@ -113,29 +116,27 @@ export const CreateTaskController = async (c: any) => {
     const connection = await pool.getConnection();
 
     try {
+        
+        const formData = await c.req.formData();
 
-        await connection.beginTransaction();
+        const project_id = formData.get('project_id');
+        const title = formData.get('title');
+        const description = formData.get('description');
+        const task_priority_id = formData.get('task_priority_id');
+        const start_date = formData.get('start_date');
+        const end_date = formData.get('end_date');
 
-        const { 
-            project_id, 
-            title, 
-            description, 
-            task_priority_id, 
-            start_date, 
-            end_date,
-            assignees    
-        } = c.req.valid('json');
+        const assignees = formData.getAll("assignees[]");
 
         const user = c.get("user");
         const created_by = user.user_id;
-
 
         const [result]:any = await pool.query(`
             INSERT 
                 INTO task (project_id, title, description, task_priority_id, start_date, end_date, created_by)
             VALUES 
                 (?, ?, ?, ?, ?, ?, ?)
-        `, [project_id, title, description, task_priority_id, start_date, end_date, created_by]);
+        `, [+project_id, title, description, task_priority_id, start_date, end_date, created_by]);
 
         const task_id = result.insertId;
 
@@ -153,28 +154,114 @@ export const CreateTaskController = async (c: any) => {
             `, [values]);
         }
 
+        const attachments = formData.getAll("attachments[]") as File[];
+
+        if (attachments) {
+            for (const file of attachments) {
+                const buffer = Buffer.from(await file.arrayBuffer())
+
+                const isImage = file.type.startsWith("image/")
+                const folder = isImage ? "images" : "documents"
+
+                const extension = file.name.split(".").pop()
+                const fileName = `${randomUUID()}.${extension}`
+
+                const filePath = join(process.cwd(), "uploads", folder, fileName);
+
+                await mkdir(join(process.cwd(), "uploads/images"), { recursive: true })
+                await mkdir(join(process.cwd(), "uploads/documents"), { recursive: true })
+
+                await writeFile(filePath, buffer)
+            }
+        }
+
         await connection.commit();
 
         return c.json({
             success: true,
             message: "Successfully created!"
-        });
+        })
 
     }
 
     catch (error) {
-        console.error(error);
-
+        console.log(error)
         await connection.rollback();
-
-        return c.json({ 
+        return c.json({
             success: false,
-            message: 'Failed to create task' 
-        }, 500);
+            message: 'Something went wrong'
+        }, 500)
     }
 
     finally {
-        connection.release(); // always release
+        connection.release();
     }
+
+    // const connection = await pool.getConnection();
+
+    // try {
+
+    //     await connection.beginTransaction();
+
+    //     const { 
+    //         project_id, 
+    //         title, 
+    //         description, 
+    //         task_priority_id, 
+    //         start_date, 
+    //         end_date,
+    //         assignees    
+    //     } = c.req.valid('json');
+
+    //     const user = c.get("user");
+    //     const created_by = user.user_id;
+
+
+    //     const [result]:any = await pool.query(`
+    //         INSERT 
+    //             INTO task (project_id, title, description, task_priority_id, start_date, end_date, created_by)
+    //         VALUES 
+    //             (?, ?, ?, ?, ?, ?, ?)
+    //     `, [project_id, title, description, task_priority_id, start_date, end_date, created_by]);
+
+    //     const task_id = result.insertId;
+
+    //     if (assignees && assignees.length > 0) {
+    //         const values = assignees.map((user_id: number | string) => [
+    //             task_id,
+    //             Number(user_id)
+    //         ]);
+
+    //         await pool.query(`
+    //             INSERT 
+    //                 INTO task_assignees (task_id, user_id)
+    //             VALUES 
+    //                 ?
+    //         `, [values]);
+    //     }
+
+    //     await connection.commit();
+
+    //     return c.json({
+    //         success: true,
+    //         message: "Successfully created!"
+    //     });
+
+    // }
+
+    // catch (error) {
+    //     console.error(error);
+
+    //     await connection.rollback();
+
+    //     return c.json({ 
+    //         success: false,
+    //         message: 'Failed to create task' 
+    //     }, 500);
+    // }
+
+    // finally {
+    //     connection.release(); // always release
+    // }
 
 }

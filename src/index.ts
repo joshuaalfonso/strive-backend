@@ -8,6 +8,7 @@ import workspaceMemberRoute from './routes/workspaceMember.route.js';
 import taskRoute from './routes/task.route.js';
 import taskStatusRoute from './routes/taskStatus.route.js';
 import taskPrirityRoute from './routes/taskPriority.route.js';
+import { serveStatic } from '@hono/node-server/serve-static';
 
 
 const app = new Hono();
@@ -18,6 +19,8 @@ app.use(cors())
 app.get('/', (c) => {
    return c.json({ message: 'Strive server is alive 🐬' })
 })
+
+app.use("/uploads/*", serveStatic({ root: "./" }))
 
 app.route('/user', userRoute);
 app.route('/project', projectRoute);

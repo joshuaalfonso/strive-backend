@@ -14,7 +14,7 @@ taskRoute.get('/:project_id', getTaskByProjectController);
 
 taskRoute.post(
     '', 
-    zValidator('json', createTaskSchema, zodErrorHandler),
+    zValidator('form', createTaskSchema, zodErrorHandler),
     CreateTaskController
 );
 
