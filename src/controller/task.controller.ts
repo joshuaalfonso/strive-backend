@@ -80,7 +80,16 @@ export const getTaskByProjectController = async (c: any) => {
                             )
                         ),
                         JSON_ARRAY()
-                    ) AS assignees
+                    ) AS assignees,
+
+                    (
+                        SELECT 
+                            COUNT(*)
+                        FROM 
+                            task_attachment tat
+                        WHERE 
+                            tat.task_id = t.task_id
+                    ) AS attachment_count
 
                 FROM task t
 
@@ -105,6 +114,90 @@ export const getTaskByProjectController = async (c: any) => {
         return c.json({
             success: false,
             message: 'Failed to load project task',
+        }, 500);
+    }
+
+}
+
+export const getTaskByIDController = async(c: any) => {
+
+     try {
+        const param = c.req.param('task_id');
+        const task_id = Number(param);
+
+        if (!task_id || isNaN(task_id)) {
+            return c.json({
+                success: false,
+                message: 'Invalid or missing task_id',
+            }, 400);
+        }
+
+            const [rows]: any = await pool.query(`
+                SELECT 
+                    t.task_id,
+                    t.title,
+                    t.description,
+                    t.project_id,
+                    p.project_name,
+                    t.task_status_id,
+                    ts.task_status_name,
+                    t.task_priority_id,
+                    tp.task_priority_name,
+                    t.start_date,
+                    t.end_date,
+                    t.completed_at,
+                    t.created_at,
+
+                    COALESCE((
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'user_id', u.user_id,
+                                'user_fullname', u.name
+                            )
+                        )
+                        FROM task_assignees ta
+                        JOIN user u ON ta.user_id = u.user_id
+                        WHERE ta.task_id = t.task_id
+                    ), JSON_ARRAY()) AS assignees,
+
+                    COALESCE((
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'task_attachment_id', tat.task_attachment_id,
+                                'file_name', tat.file_name,
+                                'original_name', tat.original_name,
+                                'file_type', tat.file_type,
+                                'size', tat.size
+                            )
+                        )
+                        FROM task_attachment tat
+                        WHERE tat.task_id = t.task_id
+                    ), JSON_ARRAY()) AS attachment
+
+
+                FROM task t
+
+                LEFT JOIN project p ON t.project_id = p.project_id
+                LEFT JOIN task_status ts ON t.task_status_id = ts.task_status_id
+                LEFT JOIN task_priority tp ON t.task_priority_id = tp.task_priority_id
+                LEFT JOIN task_assignees ta ON t.task_id = ta.task_id
+                LEFT JOIN task_attachment tat ON t.task_id = tat.task_id
+                LEFT JOIN user u ON ta.user_id = u.user_id
+
+                WHERE t.task_id = ?
+
+            `, [task_id]);
+
+
+        return c.json(rows[0], 200);
+
+    }
+
+    catch (error) {
+        console.error(error);
+        return c.json({
+            success: false,
+            message: 'Failed to load task',
         }, 500);
     }
 
@@ -163,15 +256,23 @@ export const CreateTaskController = async (c: any) => {
                 const isImage = file.type.startsWith("image/")
                 const folder = isImage ? "images" : "documents"
 
-                const extension = file.name.split(".").pop()
-                const fileName = `${randomUUID()}.${extension}`
+                const extension = file.name.split(".").pop();
+                const fileName = `${randomUUID()}.${extension}`;
 
                 const filePath = join(process.cwd(), "uploads", folder, fileName);
 
                 await mkdir(join(process.cwd(), "uploads/images"), { recursive: true })
                 await mkdir(join(process.cwd(), "uploads/documents"), { recursive: true })
 
-                await writeFile(filePath, buffer)
+                await writeFile(filePath, buffer);
+
+                await pool.query(`
+                INSERT 
+                        INTO task_attachment (task_id, file_name, original_name, file_type, size)
+                    VALUES 
+                        (?, ?, ?, ?, ?)
+                `, [task_id, fileName, file.name, file.type, file.size]);
+
             }
         }
 

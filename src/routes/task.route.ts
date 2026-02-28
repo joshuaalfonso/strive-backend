@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { CreateTaskController, getTaskByProjectController } from "../controller/task.controller.js";
+import { CreateTaskController, getTaskByIDController, getTaskByProjectController } from "../controller/task.controller.js";
 import { zValidator } from "@hono/zod-validator";
 import { createTaskSchema } from "../schema/task.schema.js";
 import { zodErrorHandler } from "../middleware/zodErrorHandler.js";
@@ -11,6 +11,7 @@ const taskRoute = new Hono();
 taskRoute.use('', authMiddleware);
 
 taskRoute.get('/:project_id', getTaskByProjectController);
+taskRoute.get('/detail/:task_id', getTaskByIDController);
 
 taskRoute.post(
     '', 
