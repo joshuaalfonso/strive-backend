@@ -170,7 +170,20 @@ export const getTaskByIDController = async(c: any) => {
                         )
                         FROM task_attachment tat
                         WHERE tat.task_id = t.task_id
-                    ), JSON_ARRAY()) AS attachment
+                    ), JSON_ARRAY()) AS attachment,
+
+                    COALESCE((
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'subtask_id', st.subtask_id,
+                                'subtask_title', st.subtask_title,
+                                'is_completed', st.is_completed,
+                                'created_at', st.created_at
+                            )
+                        )
+                        FROM subtask st
+                        WHERE st.task_id = t.task_id
+                    ), JSON_ARRAY()) AS subtasks
 
 
                 FROM task t
@@ -180,6 +193,7 @@ export const getTaskByIDController = async(c: any) => {
                 LEFT JOIN task_priority tp ON t.task_priority_id = tp.task_priority_id
                 LEFT JOIN task_assignees ta ON t.task_id = ta.task_id
                 LEFT JOIN task_attachment tat ON t.task_id = tat.task_id
+                LEFT JOIN subtask subt ON t.task_id = subt.task_id
                 LEFT JOIN user u ON ta.user_id = u.user_id
 
                 WHERE t.task_id = ?
@@ -245,6 +259,21 @@ export const CreateTaskController = async (c: any) => {
             `, [values]);
         }
 
+        const subtasks = formData.getAll("subtasks[]") as any[];
+
+        if (subtasks) {
+            for (const subtask of subtasks) {
+
+                await pool.query(`
+                INSERT 
+                        INTO subtask (task_id, subtask_title, created_by)
+                    VALUES 
+                        (?, ?, ?)
+                `, [task_id, subtask, created_by]);
+
+            }
+        }
+
         const attachments = formData.getAll("attachments[]") as File[];
 
         if (attachments) {
@@ -273,6 +302,7 @@ export const CreateTaskController = async (c: any) => {
 
             }
         }
+        
 
         await connection.commit();
 
