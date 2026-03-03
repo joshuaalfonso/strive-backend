@@ -176,6 +176,7 @@ export const getTaskByIDController = async(c: any) => {
                         SELECT JSON_ARRAYAGG(
                             JSON_OBJECT(
                                 'subtask_id', st.subtask_id,
+                                'task_id', st.task_id,
                                 'subtask_title', st.subtask_title,
                                 'is_completed', st.is_completed,
                                 'created_at', st.created_at
@@ -394,3 +395,47 @@ export const CreateTaskController = async (c: any) => {
     // }
 
 }
+
+
+export const completeSubtaskController = async (c: any) => {
+    
+    try {
+
+        const subtask_id = c.req.param('subtask_id');
+        const { is_completed } = await c.req.json();
+        const completed = is_completed ? 1 : 0;
+
+        const [result]: any = await pool.query(`
+            UPDATE
+                subtask 
+            SET 
+                is_completed = ?
+            WHERE
+                subtask_id = ?
+        `, [completed, subtask_id]);
+
+        if (result.affectedRows === 0) {
+            return c.json({ 
+                success: true,
+                message: 'Subtask not found' 
+            }, 404);
+        }
+
+         return c.json({ 
+            success: true,
+            message: 'Successfully updated',
+            is_completed
+        }, 200);
+
+    }
+
+    catch (error) {
+        console.log(error)
+        return c.json({ 
+            success: true,
+            message: 'Something went wrong' 
+        }, 500);
+    }
+
+}
+

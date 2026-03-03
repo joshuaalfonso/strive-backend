@@ -9,6 +9,7 @@ import taskRoute from './routes/task.route.js';
 import taskStatusRoute from './routes/taskStatus.route.js';
 import taskPrirityRoute from './routes/taskPriority.route.js';
 import { serveStatic } from '@hono/node-server/serve-static';
+import subTaskRoute from './routes/subtask.route.js';
 
 
 const app = new Hono();
@@ -28,6 +29,7 @@ app.route('/workspace-member', workspaceMemberRoute);
 app.route('task', taskRoute),
 app.route('task-status', taskStatusRoute),
 app.route('task-priority', taskPrirityRoute),
+app.route('subtask', subTaskRoute),
 
 
 serve({
