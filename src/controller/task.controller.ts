@@ -87,7 +87,16 @@ export const getTaskByProjectController = async (c: any) => {
                             task_attachment tat
                         WHERE 
                             tat.task_id = t.task_id
-                    ) AS attachment_count
+                    ) AS attachment_count,
+
+                    (
+                        SELECT 
+                            COUNT(*)
+                        FROM 
+                            subtask st
+                        WHERE 
+                            st.task_id = t.task_id
+                    ) AS subtask_count
 
                 FROM task t
 
@@ -425,6 +434,46 @@ export const completeSubtaskController = async (c: any) => {
             success: true,
             message: 'Successfully updated',
             is_completed
+        }, 200);
+
+    }
+
+    catch (error) {
+        console.log(error)
+        return c.json({ 
+            success: true,
+            message: 'Something went wrong' 
+        }, 500);
+    }
+
+}
+
+export const updateTaskDescription = async (c: any) => {
+    
+    try {
+
+        const task_id = c.req.param('task_id');
+        const { description } = await c.req.json();
+
+        const [result]: any = await pool.query(`
+            UPDATE
+                task 
+            SET 
+                description = ?
+            WHERE
+                task_id = ?
+        `, [description, task_id]);
+
+        if (result.affectedRows === 0) {
+            return c.json({ 
+                success: true,
+                message: 'Task not found' 
+            }, 404);
+        }
+
+         return c.json({ 
+            success: true,
+            message: 'Successfully updated',
         }, 200);
 
     }
