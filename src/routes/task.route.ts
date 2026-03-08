@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { CreateTaskController, getTaskByIDController, getTaskByProjectController, updateTaskDescription } from "../controller/task.controller.js";
+import { CreateTaskController, getTaskByIDController, getTaskByProjectController, updateTaskDescription, updateTaskPriorityController } from "../controller/task.controller.js";
 import { zValidator } from "@hono/zod-validator";
 import { createTaskSchema } from "../schema/task.schema.js";
 import { zodErrorHandler } from "../middleware/zodErrorHandler.js";
@@ -21,6 +21,7 @@ taskRoute.post(
 
 taskRoute.get('/detail/:task_id', getTaskByIDController);
 taskRoute.put('/:task_id/description', updateTaskDescription);
+taskRoute.put('/:task_id/priority', updateTaskPriorityController);
 
 
 export default taskRoute;

@@ -34,9 +34,14 @@ export const GetProjectByWorkspace = async (c: any) => {
 
         const [rows] = await pool.query(`
             SELECT 
-                *
+                p.*,
+                ps.project_status_name
             FROM 
-                project
+                project p
+            LEFT JOIN
+                project_status ps
+            ON
+                p.project_status_id = ps.project_status_id
             WHERE 
                 workspace_id = ?
         `, [workspace_id])
@@ -74,7 +79,8 @@ export const GetProjectById = async (c: any) => {
                     p.workspace_id,
                     w.workspace_name,
                     p.project_description,
-                    p.status,
+                    p.project_status_id,
+                    ps.project_status_name,
                     p.owner_id,
                     u.name as owner_name,
                     p.created_at
@@ -84,6 +90,10 @@ export const GetProjectById = async (c: any) => {
                     workspace w
                 ON 
                     p.workspace_id = w.workspace_id
+                LEFT JOIN
+                    project_status ps
+                ON
+                    p.project_status_id = ps.project_status_id
                 LEFT JOIN
                     user u
                 ON
@@ -111,16 +121,24 @@ export const CreateProjectController = async (c: any) => {
 
     try {
 
-        const { project_name, project_description, workspace_id } = c.req.valid('json');
+        const { 
+            project_name, 
+            project_description, 
+            workspace_id,
+            start_date,
+            end_date
+        } = c.req.valid('json');
+
+
         const user = c.get("user");
         const owner_id = user.user_id;
      
         await pool.query(`
             INSERT 
-                INTO project (project_name, project_description, owner_id, workspace_id)
+                INTO project (project_name, project_description, start_date, end_date, owner_id, workspace_id)
             VALUES 
-                (?, ?, ?, ?)
-        `, [project_name, project_description, owner_id, workspace_id]);
+                (?, ?, ?, ?, ?, ?)
+        `, [project_name, project_description, start_date, end_date, owner_id, workspace_id]);
 
 
         return c.json({
@@ -133,6 +151,51 @@ export const CreateProjectController = async (c: any) => {
     catch (error) {
         console.error(error);
         return c.json({ error: 'Failed to create project' }, 500);
+    }
+
+}
+
+export const UpdateProjectController = async (c: any) => {
+
+
+    try {
+
+        const { 
+            project_id,
+            project_name, 
+            project_description, 
+            workspace_id,
+            start_date,
+            end_date
+        } = c.req.valid('json');
+
+
+        const user = c.get("user");
+        const owner_id = user.user_id;
+     
+        await pool.query(`
+             UPDATE 
+                project
+            SET project_name = ?,
+                project_description = ?,
+                start_date = ?,
+                end_date = ?,
+                owner_id = ?,
+                workspace_id = ?
+            WHERE project_id = ?;
+        `, [project_name, project_description, start_date, end_date, owner_id, workspace_id, project_id]);
+
+
+        return c.json({
+            success: true,
+            message: "Successfully updated!"
+        });
+
+    }
+    
+    catch (error) {
+        console.error(error);
+        return c.json({ error: 'Failed to update project' }, 500);
     }
 
 }

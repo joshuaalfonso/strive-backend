@@ -488,3 +488,43 @@ export const updateTaskDescription = async (c: any) => {
 
 }
 
+export const updateTaskPriorityController = async (c: any) => {
+    
+    try {
+
+        const task_id = c.req.param('task_id');
+        const { task_priority_id } = await c.req.json();
+
+        const [result]: any = await pool.query(`
+            UPDATE
+                task 
+            SET 
+                task_priority_id = ?
+            WHERE
+                task_id = ?
+        `, [task_priority_id, task_id]);
+
+        if (result.affectedRows === 0) {
+            return c.json({ 
+                success: true,
+                message: 'Task not found' 
+            }, 404);
+        }
+
+         return c.json({ 
+            success: true,
+            message: 'Successfully updated',
+        }, 200);
+
+    }
+
+    catch (error) {
+        console.log(error)
+        return c.json({ 
+            success: true,
+            message: 'Something went wrong' 
+        }, 500);
+    }
+
+}
+

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { CreateProjectController, GetAllProjectController, GetProjectById, GetProjectByWorkspace, GetProjectDescription } from "../controller/project.controller.js";
+import { CreateProjectController, GetAllProjectController, GetProjectById, GetProjectByWorkspace, GetProjectDescription, UpdateProjectController } from "../controller/project.controller.js";
 import { zValidator } from "@hono/zod-validator";
-import { createProjectSchema } from "../schema/project.schema.js";
+import { createProjectSchema, updateProjectSchema } from "../schema/project.schema.js";
 import { zodErrorHandler } from "../middleware/zodErrorHandler.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
@@ -23,6 +23,12 @@ projectRoute.post(
     '', 
     zValidator('json', createProjectSchema, zodErrorHandler), 
     CreateProjectController,
+)
+
+projectRoute.put(
+    '', 
+    zValidator('json', updateProjectSchema, zodErrorHandler), 
+    UpdateProjectController,
 )
 
 export default projectRoute;
